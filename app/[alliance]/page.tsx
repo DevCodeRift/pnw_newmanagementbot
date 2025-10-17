@@ -3,6 +3,8 @@ import { getAuth } from '@/lib/auth'
 import { sql } from '@/lib/db'
 import Image from 'next/image'
 import SignOutButton from '@/components/SignOutButton'
+import MembershipTable from '@/components/MembershipTable'
+import SyncButton from '@/components/SyncButton'
 
 interface AlliancePageProps {
   params: {
@@ -34,28 +36,32 @@ export default async function AlliancePage({ params }: AlliancePageProps) {
     notFound()
   }
 
-  // Get alliance members
+  // Get alliance members with full stats
   let members: any[] = []
   try {
     members = await sql`
       SELECT
-        u.nation_name,
-        u.leader_name,
-        u.nation_id,
-        u.alliance_position,
+        am.nation_id,
+        am.nation_name,
+        am.leader_name,
+        am.score,
+        am.cities,
+        am.soldiers,
+        am.tanks,
+        am.aircraft,
+        am.ships,
+        am.missiles,
+        am.nukes,
         am.position,
-        u.last_sync
+        am.war_policy,
+        am.domestic_policy,
+        am.color,
+        am.continent,
+        am.last_active,
+        am.updated_at
       FROM alliance_members am
-      JOIN users u ON am.user_id = u.id
       WHERE am.alliance_id = ${alliance.id}
-      ORDER BY
-        CASE am.position
-          WHEN 'LEADER' THEN 1
-          WHEN 'HEIR' THEN 2
-          WHEN 'OFFICER' THEN 3
-          ELSE 4
-        END,
-        u.nation_name
+      ORDER BY am.score DESC NULLS LAST
     `
   } catch (error) {
     console.error('Error fetching members:', error)
@@ -165,65 +171,17 @@ export default async function AlliancePage({ params }: AlliancePageProps) {
           </div>
         )}
 
-        {/* Members List */}
-        <div>
-          <h2 style={{
-            fontSize: '1.25rem',
-            fontWeight: '700',
-            color: '#333',
+        {/* Membership Table */}
+        <div style={{ marginBottom: '2rem' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             marginBottom: '1rem'
           }}>
-            Alliance Members
-          </h2>
-
-          {members.length === 0 ? (
-            <p style={{ color: '#666', textAlign: 'center', padding: '2rem' }}>
-              No members have linked their accounts yet.
-            </p>
-          ) : (
-            <div style={{
-              border: '1px solid #e0e0e0',
-              borderRadius: '8px',
-              overflow: 'hidden'
-            }}>
-              {members.map((member, index) => (
-                <div
-                  key={member.nation_id}
-                  style={{
-                    padding: '1rem',
-                    borderBottom: index < members.length - 1 ? '1px solid #f0f0f0' : 'none',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    background: index % 2 === 0 ? '#fafafa' : 'white'
-                  }}
-                >
-                  <div>
-                    <p style={{ fontWeight: '600', color: '#333', marginBottom: '0.25rem' }}>
-                      {member.nation_name}
-                    </p>
-                    <p style={{ fontSize: '0.875rem', color: '#666' }}>
-                      {member.leader_name}
-                    </p>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <p style={{
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      color: '#5865F2',
-                      textTransform: 'uppercase',
-                      marginBottom: '0.25rem'
-                    }}>
-                      {member.position || member.alliance_position || 'Member'}
-                    </p>
-                    <p style={{ fontSize: '0.75rem', color: '#999' }}>
-                      ID: {member.nation_id}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+            <SyncButton allianceId={alliance.alliance_id} />
+          </div>
+          <MembershipTable members={members} />
         </div>
 
         {/* Actions */}
