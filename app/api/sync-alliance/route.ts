@@ -59,8 +59,8 @@ export async function POST(request: NextRequest) {
           missiles
           nukes
           alliance_position
-          war_policy
-          domestic_policy
+          warpolicy
+          dompolicy
           color
           continent
           last_active
@@ -121,8 +121,8 @@ export async function POST(request: NextRequest) {
             ${member.missiles},
             ${member.nukes},
             ${member.alliance_position},
-            ${member.war_policy},
-            ${member.domestic_policy},
+            ${member.warpolicy},
+            ${member.dompolicy},
             ${member.color},
             ${member.continent},
             ${member.last_active ? new Date(member.last_active) : null},
@@ -141,8 +141,8 @@ export async function POST(request: NextRequest) {
             missiles = ${member.missiles},
             nukes = ${member.nukes},
             position = ${member.alliance_position},
-            war_policy = ${member.war_policy},
-            domestic_policy = ${member.domestic_policy},
+            war_policy = ${member.warpolicy},
+            domestic_policy = ${member.dompolicy},
             color = ${member.color},
             continent = ${member.continent},
             last_active = ${member.last_active ? new Date(member.last_active) : null},
