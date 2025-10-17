@@ -36,42 +36,66 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Alliance not found' }, { status: 404 })
     }
 
-    // Fetch all alliance members from P&W API using PnWKit
+    // Fetch all alliance members from P&W API using PnWKit with pagination
     pnwkit.setKey(apiKey)
 
-    let members = []
-    try {
-      members = await pnwkit.nationQuery(
-        {
-          alliance_id: [allianceId],
-          first: 100
-        },
-        `
-          id
-          nation_name
-          leader_name
-          score
-          num_cities
-          soldiers
-          tanks
-          aircraft
-          ships
-          missiles
-          nukes
-          alliance_position
-          warpolicy
-          dompolicy
-          color
-          continent
-          last_active
-        `
-      )
+    let allMembers: any[] = []
+    let hasMore = true
+    let page = 1
 
-      console.log(`Found ${members.length} members for alliance ${allianceId}`)
+    try {
+      while (hasMore) {
+        console.log(`Fetching page ${page} for alliance ${allianceId}`)
+
+        const members = await pnwkit.nationQuery(
+          {
+            alliance_id: [allianceId],
+            first: 100,
+            page: page
+          },
+          `
+            id
+            nation_name
+            leader_name
+            score
+            num_cities
+            soldiers
+            tanks
+            aircraft
+            ships
+            missiles
+            nukes
+            alliance_position
+            warpolicy
+            dompolicy
+            color
+            continent
+            last_active
+          `
+        )
+
+        if (members.length === 0) {
+          hasMore = false
+        } else {
+          allMembers = allMembers.concat(members)
+          console.log(`Page ${page}: Found ${members.length} members (total: ${allMembers.length})`)
+
+          // If we got less than 100, we've reached the end
+          if (members.length < 100) {
+            hasMore = false
+          } else {
+            page++
+          }
+        }
+      }
+
+      console.log(`Total members fetched for alliance ${allianceId}: ${allMembers.length}`)
     } catch (error) {
       console.error('PnWKit error fetching members:', error)
       throw new Error('Failed to fetch alliance members from P&W API')
     }
+
+    const members = allMembers
 
     // Get alliance database ID
     const allianceRecord = await sql`
