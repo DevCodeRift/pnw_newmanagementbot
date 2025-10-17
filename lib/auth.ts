@@ -13,8 +13,28 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account, profile }) {
       if (account?.provider === 'discord') {
+        // If DATABASE_URL is not set, still allow sign in (but without persistence)
+        if (!process.env.DATABASE_URL) {
+          console.warn('DATABASE_URL not set. User data will not be persisted.')
+          return true
+        }
+
         try {
-          const sql = neon(process.env.DATABASE_URL!)
+          const sql = neon(process.env.DATABASE_URL)
+
+          // Try to create table if it doesn't exist
+          await sql`
+            CREATE TABLE IF NOT EXISTS users (
+              id SERIAL PRIMARY KEY,
+              discord_id VARCHAR(255) UNIQUE NOT NULL,
+              username VARCHAR(255) NOT NULL,
+              email VARCHAR(255),
+              avatar TEXT,
+              discriminator VARCHAR(10),
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+          `
 
           const existingUser = await sql`
             SELECT * FROM users WHERE discord_id = ${user.id}
@@ -46,8 +66,10 @@ export const authOptions: NextAuthOptions = {
 
           return true
         } catch (error) {
-          console.error('Database error:', error)
-          return false
+          console.error('Database error during sign in:', error)
+          // Still allow sign in even if database operations fail
+          // This prevents the "Access Denied" error
+          return true
         }
       }
       return true
