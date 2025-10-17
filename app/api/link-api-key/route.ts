@@ -17,43 +17,61 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 })
     }
 
-    // Verify the API key by fetching user's nation data
-    pnwkit.setKey(apiKey)
-
+    // Verify the API key by fetching user's nation data using raw GraphQL query
+    // The P&W API has a "me" query that returns the authenticated user's nation
     let nationData
     try {
-      // Get authenticated user's nation using the "me" query via vmode parameter
-      // When using an authenticated API key, we query for the nation that owns the key
-      const nations = await pnwkit.nationQuery(
-        { vmode: true, first: 1 },
-        `
-          id
-          nation_name
-          leader_name
-          alliance_id
-          alliance_position
-          alliance {
-            id
-            name
-            acronym
-            color
-            score
+      const graphqlQuery = {
+        query: `{
+          me {
+            nation {
+              id
+              nation_name
+              leader_name
+              alliance_id
+              alliance_position
+              alliance {
+                id
+                name
+                acronym
+                color
+                score
+              }
+            }
           }
-        `
-      )
+        }`
+      }
 
-      if (!nations || nations.length === 0) {
+      const response = await fetch('https://api.politicsandwar.com/graphql?api_key=' + apiKey, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(graphqlQuery),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch nation data')
+      }
+
+      const result = await response.json()
+
+      if (result.errors) {
+        throw new Error(result.errors[0]?.message || 'GraphQL error')
+      }
+
+      if (!result.data?.me?.nation) {
         return NextResponse.json(
           { error: 'Invalid API key or no nation found' },
           { status: 400 }
         )
       }
 
-      nationData = nations[0]
+      nationData = result.data.me.nation
     } catch (error: any) {
-      console.error('PnWKit error:', error)
+      console.error('PnW API error:', error)
       // Check if error is due to invalid API key
-      if (error.message && error.message.includes('Unauthorized')) {
+      if (error.message && (error.message.includes('Unauthorized') || error.message.includes('invalid'))) {
         return NextResponse.json(
           { error: 'Invalid API key. Please check that it is correct and try again.' },
           { status: 400 }
