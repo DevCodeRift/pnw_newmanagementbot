@@ -19,11 +19,13 @@ export async function graphqlQuery<T = any>(
   variables: Record<string, any> = {},
   apiKey: string
 ): Promise<T> {
-  const response = await fetch(GRAPHQL_ENDPOINT, {
+  // API key must be in URL as query parameter
+  const endpoint = `${GRAPHQL_ENDPOINT}?api_key=${apiKey}`
+
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Api-Key': apiKey,
     },
     body: JSON.stringify({
       query,
