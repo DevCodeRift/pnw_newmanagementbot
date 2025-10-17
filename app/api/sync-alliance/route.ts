@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuth } from '@/lib/auth'
 import { sql } from '@/lib/db'
+import pnwkit from 'pnwkit'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,72 +16,62 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Alliance ID is required' }, { status: 400 })
     }
 
-    // Get alliance data to find an API key
+    // Get current user's API key
+    const users = await sql`
+      SELECT pnw_api_key FROM users WHERE discord_id = ${session.user.id} AND api_key_verified = TRUE
+    `
+
+    if (users.length === 0 || !users[0].pnw_api_key) {
+      return NextResponse.json({ error: 'No API key found. Please link your P&W account first.' }, { status: 400 })
+    }
+
+    const apiKey = users[0].pnw_api_key
+
+    // Verify alliance exists
     const alliances = await sql`
-      SELECT a.*, u.pnw_api_key
-      FROM alliances a
-      LEFT JOIN users u ON u.alliance_id = a.alliance_id AND u.api_key_verified = TRUE
-      WHERE a.alliance_id = ${allianceId}
-      LIMIT 1
+      SELECT id FROM alliances WHERE alliance_id = ${allianceId}
     `
 
     if (alliances.length === 0) {
       return NextResponse.json({ error: 'Alliance not found' }, { status: 404 })
     }
 
-    const alliance = alliances[0]
-    const apiKey = alliance.pnw_api_key
+    // Fetch all alliance members from P&W API using PnWKit
+    pnwkit.setKey(apiKey)
 
-    if (!apiKey) {
-      return NextResponse.json({ error: 'No API key available for this alliance' }, { status: 400 })
+    let members = []
+    try {
+      members = await pnwkit.nationQuery(
+        {
+          alliance_id: [allianceId],
+          first: 100
+        },
+        `
+          id
+          nation_name
+          leader_name
+          score
+          num_cities
+          soldiers
+          tanks
+          aircraft
+          ships
+          missiles
+          nukes
+          alliance_position
+          war_policy
+          domestic_policy
+          color
+          continent
+          last_active
+        `
+      )
+
+      console.log(`Found ${members.length} members for alliance ${allianceId}`)
+    } catch (error) {
+      console.error('PnWKit error fetching members:', error)
+      throw new Error('Failed to fetch alliance members from P&W API')
     }
-
-    // Fetch all alliance members from P&W API
-    const graphqlQuery = {
-      query: `{
-        nations(first: 100, alliance_id: [${allianceId}]) {
-          data {
-            id
-            nation_name
-            leader_name
-            score
-            num_cities
-            soldiers
-            tanks
-            aircraft
-            ships
-            missiles
-            nukes
-            alliance_position
-            war_policy
-            domestic_policy
-            color
-            continent
-            last_active
-          }
-        }
-      }`
-    }
-
-    const response = await fetch('https://api.politicsandwar.com/graphql?api_key=' + apiKey, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(graphqlQuery),
-    })
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch alliance members')
-    }
-
-    const result = await response.json()
-
-    if (result.errors) {
-      throw new Error(result.errors[0]?.message || 'GraphQL error')
-    }
-
-    const members = result.data?.nations?.data || []
 
     // Get alliance database ID
     const allianceRecord = await sql`
