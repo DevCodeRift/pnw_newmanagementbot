@@ -47,9 +47,11 @@ export default function SyncButton({ allianceId }: SyncButtonProps) {
         disabled={syncing}
         className="button"
         style={{
-          background: syncing ? '#999' : '#10b981',
+          background: syncing ? '#4b5563' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+          border: syncing ? '1px solid #6b7280' : '1px solid #34d399',
           cursor: syncing ? 'not-allowed' : 'pointer',
-          opacity: syncing ? 0.7 : 1
+          opacity: syncing ? 0.7 : 1,
+          boxShadow: syncing ? 'none' : '0 4px 15px rgba(16, 185, 129, 0.3)'
         }}
       >
         {syncing ? 'Syncing...' : '🔄 Sync Members'}
@@ -58,7 +60,8 @@ export default function SyncButton({ allianceId }: SyncButtonProps) {
         <p style={{
           marginTop: '0.5rem',
           fontSize: '0.875rem',
-          color: message.includes('Error') ? '#c03537' : '#2e7d32'
+          color: message.includes('Error') ? '#f87171' : '#6ee7b7',
+          fontWeight: '600'
         }}>
           {message}
         </p>

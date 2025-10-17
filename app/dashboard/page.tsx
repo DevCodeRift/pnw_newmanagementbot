@@ -58,17 +58,17 @@ export default async function DashboardPage() {
           <p><strong>Status:</strong> Authenticated</p>
           {userData?.api_key_verified && (
             <>
-              <hr style={{ margin: '1rem 0', border: 'none', borderTop: '1px solid #e0e0e0' }} />
-              <p><strong>Nation:</strong> {userData.nation_name || 'Unknown'}</p>
-              <p><strong>Leader:</strong> {userData.leader_name || 'Unknown'}</p>
+              <hr style={{ margin: '1rem 0', border: 'none', borderTop: '1px solid #374151' }} />
+              <p><strong style={{ color: '#f3f4f6' }}>Nation:</strong> {userData.nation_name || 'Unknown'}</p>
+              <p><strong style={{ color: '#f3f4f6' }}>Leader:</strong> {userData.leader_name || 'Unknown'}</p>
               {userData.alliance_name && (
                 <>
-                  <p><strong>Alliance:</strong> {userData.alliance_name}</p>
-                  <p><strong>Position:</strong> {userData.alliance_position || 'Member'}</p>
+                  <p><strong style={{ color: '#f3f4f6' }}>Alliance:</strong> {userData.alliance_name}</p>
+                  <p><strong style={{ color: '#f3f4f6' }}>Position:</strong> {userData.alliance_position || 'Member'}</p>
                 </>
               )}
               {userData.last_sync && (
-                <p style={{ fontSize: '0.875rem', color: '#999', marginTop: '0.5rem' }}>
+                <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.5rem' }}>
                   Last synced: {new Date(userData.last_sync).toLocaleString()}
                 </p>
               )}
@@ -94,16 +94,17 @@ export default async function DashboardPage() {
 
         {!userData?.api_key_verified && (
           <div style={{
-            background: '#fff3e0',
+            background: '#7c2d12',
             padding: '1rem',
-            borderRadius: '8px',
+            borderRadius: '12px',
             marginBottom: '1rem',
-            border: '1px solid #ffcc80'
+            border: '1px solid #f97316',
+            boxShadow: '0 0 20px rgba(249, 115, 22, 0.2)'
           }}>
-            <p style={{ color: '#e65100', marginBottom: '0.5rem', fontWeight: '600' }}>
-              P&W Account Not Linked
+            <p style={{ color: '#fed7aa', marginBottom: '0.5rem', fontWeight: '600' }}>
+              ⚠ P&W Account Not Linked
             </p>
-            <p style={{ color: '#f57c00', fontSize: '0.875rem', marginBottom: '1rem' }}>
+            <p style={{ color: '#fdba74', fontSize: '0.875rem', marginBottom: '1rem' }}>
               Link your Politics & War account to access alliance features.
             </p>
             <Link
