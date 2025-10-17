@@ -22,9 +22,10 @@ export async function POST(request: NextRequest) {
 
     let nationData
     try {
-      // Get authenticated user's nation (me query)
+      // Get authenticated user's nation using the "me" query via vmode parameter
+      // When using an authenticated API key, we query for the nation that owns the key
       const nations = await pnwkit.nationQuery(
-        { first: 1 },
+        { vmode: true, first: 1 },
         `
           id
           nation_name
@@ -49,10 +50,17 @@ export async function POST(request: NextRequest) {
       }
 
       nationData = nations[0]
-    } catch (error) {
+    } catch (error: any) {
       console.error('PnWKit error:', error)
+      // Check if error is due to invalid API key
+      if (error.message && error.message.includes('Unauthorized')) {
+        return NextResponse.json(
+          { error: 'Invalid API key. Please check that it is correct and try again.' },
+          { status: 400 }
+        )
+      }
       return NextResponse.json(
-        { error: 'Failed to verify API key. Please check that it is correct.' },
+        { error: 'Failed to verify API key. Please try again.' },
         { status: 400 }
       )
     }
