@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 
-type SortField = 'nation_name' | 'position' | 'score' | 'cities' | 'soldiers' | 'tanks' | 'aircraft' | 'ships' | 'missiles' | 'nukes'
+type SortField = 'nation_name' | 'position' | 'alliance_seniority' | 'score' | 'cities' | 'soldiers' | 'tanks' | 'aircraft' | 'ships' | 'missiles' | 'nukes'
 type SortDirection = 'asc' | 'desc'
 
 interface Member {
@@ -18,6 +18,7 @@ interface Member {
   missiles: number
   nukes: number
   position: string
+  alliance_seniority: number | null
   war_policy: string
   domestic_policy: string
   color: string
@@ -214,6 +215,9 @@ export default function MembershipTable({ members }: MembershipTableProps) {
                 </div>
               </th>
               <th style={{ padding: '0.75rem', textAlign: 'right' }}>
+                <SortButton field="alliance_seniority" label="Seniority" />
+              </th>
+              <th style={{ padding: '0.75rem', textAlign: 'right' }}>
                 <SortButton field="score" label="Score" />
               </th>
               <th style={{ padding: '0.75rem', textAlign: 'right' }}>
@@ -281,6 +285,9 @@ export default function MembershipTable({ members }: MembershipTableProps) {
                     }}>
                       {member.position || 'MEMBER'}
                     </span>
+                  </td>
+                  <td style={{ padding: '0.75rem', textAlign: 'right', color: '#a78bfa', fontWeight: '600' }}>
+                    {member.alliance_seniority !== null && member.alliance_seniority !== undefined ? member.alliance_seniority : 'N/A'}
                   </td>
                   <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', color: '#f3f4f6' }}>
                     {formatNumber(member.score)}

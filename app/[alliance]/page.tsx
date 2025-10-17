@@ -53,6 +53,7 @@ export default async function AlliancePage({ params }: AlliancePageProps) {
         am.missiles,
         am.nukes,
         am.position,
+        am.alliance_seniority,
         am.war_policy,
         am.domestic_policy,
         am.color,

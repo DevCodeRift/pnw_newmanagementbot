@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
             missiles
             nukes
             alliance_position
+            alliance_seniority
             warpolicy
             dompolicy
             color
@@ -127,7 +128,7 @@ export async function POST(request: NextRequest) {
           INSERT INTO alliance_members (
             alliance_id, nation_id, user_id, nation_name, leader_name,
             score, cities, soldiers, tanks, aircraft, ships, missiles, nukes,
-            position, war_policy, domestic_policy, color, continent,
+            position, alliance_seniority, war_policy, domestic_policy, color, continent,
             last_active, updated_at
           )
           VALUES (
@@ -145,6 +146,7 @@ export async function POST(request: NextRequest) {
             ${member.missiles},
             ${member.nukes},
             ${member.alliance_position},
+            ${member.alliance_seniority},
             ${member.warpolicy},
             ${member.dompolicy},
             ${member.color},
@@ -165,6 +167,7 @@ export async function POST(request: NextRequest) {
             missiles = ${member.missiles},
             nukes = ${member.nukes},
             position = ${member.alliance_position},
+            alliance_seniority = ${member.alliance_seniority},
             war_policy = ${member.warpolicy},
             domestic_policy = ${member.dompolicy},
             color = ${member.color},

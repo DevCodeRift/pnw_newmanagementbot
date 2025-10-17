@@ -4,7 +4,8 @@
       "Bash(npm install)",
       "Bash(npm install tsx)",
       "WebFetch(domain:bsnk-dev.github.io)",
-      "Bash(npm view:*)"
+      "Bash(npm view:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
