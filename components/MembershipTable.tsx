@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-type SortField = 'nation_name' | 'score' | 'cities' | 'soldiers' | 'tanks' | 'aircraft' | 'ships' | 'missiles' | 'nukes'
+type SortField = 'nation_name' | 'position' | 'score' | 'cities' | 'soldiers' | 'tanks' | 'aircraft' | 'ships' | 'missiles' | 'nukes'
 type SortDirection = 'asc' | 'desc'
 
 interface Member {
@@ -127,7 +127,9 @@ export default function MembershipTable({ members }: MembershipTableProps) {
                 Leader
               </th>
               <th style={{ padding: '0.75rem', textAlign: 'center' }}>
-                Position
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <SortButton field="position" label="Position" />
+                </div>
               </th>
               <th style={{ padding: '0.75rem', textAlign: 'right' }}>
                 <SortButton field="score" label="Score" />

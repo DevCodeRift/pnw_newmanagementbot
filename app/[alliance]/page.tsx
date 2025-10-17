@@ -84,7 +84,7 @@ export default async function AlliancePage({ params }: AlliancePageProps) {
 
   return (
     <div className="container">
-      <div className="card" style={{ maxWidth: '900px' }}>
+      <div className="card" style={{ maxWidth: '1600px' }}>
         {/* Alliance Header */}
         <div style={{
           display: 'flex',
