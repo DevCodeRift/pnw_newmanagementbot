@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npm install)",
-      "Bash(npm install tsx)"
+      "Bash(npm install tsx)",
+      "WebFetch(domain:bsnk-dev.github.io)",
+      "Bash(npm view:*)"
     ],
     "deny": [],
     "ask": []
