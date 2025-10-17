@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuth } from '@/lib/auth'
 import { sql } from '@/lib/db'
-import pnwkit from 'pnwkit'
+import { queryNationsWithPositions } from '@/lib/graphql'
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,9 +36,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Alliance not found' }, { status: 404 })
     }
 
-    // Fetch all alliance members from P&W API using PnWKit with pagination
-    pnwkit.setKey(apiKey)
-
+    // Fetch all alliance members from P&W API using GraphQL with pagination
     let allMembers: any[] = []
     let hasMore = true
     let page = 1
@@ -47,52 +45,23 @@ export async function POST(request: NextRequest) {
       while (hasMore) {
         console.log(`Fetching page ${page} for alliance ${allianceId}`)
 
-        const members = await pnwkit.nationQuery(
-          {
-            alliance_id: [allianceId],
-            first: 100,
-            page: page
-          },
-          `
-            id
-            nation_name
-            leader_name
-            score
-            num_cities
-            soldiers
-            tanks
-            aircraft
-            ships
-            missiles
-            nukes
-            alliance_position
-            alliance_seniority
-            warpolicy
-            dompolicy
-            color
-            continent
-            last_active
-          `
-        )
+        const result = await queryNationsWithPositions(allianceId, page, apiKey)
 
-        if (members.length === 0) {
+        if (result.data.length === 0) {
           hasMore = false
         } else {
-          allMembers = allMembers.concat(members)
-          console.log(`Page ${page}: Found ${members.length} members (total: ${allMembers.length})`)
+          allMembers = allMembers.concat(result.data)
+          console.log(`Page ${page}: Found ${result.data.length} members (total: ${allMembers.length})`)
 
-          // If we got less than 100, we've reached the end
-          if (members.length < 100) {
-            hasMore = false
-          } else {
-            page++
-          }
+          // Check if there are more pages
+          hasMore = result.paginatorInfo.hasMorePages
+          page++
         }
       }
 
       console.log(`Total members fetched for alliance ${allianceId}: ${allMembers.length}`)
     } catch (error) {
-      console.error('PnWKit error fetching members:', error)
+      console.error('GraphQL error fetching members:', error)
       throw new Error('Failed to fetch alliance members from P&W API')
     }
 
@@ -123,12 +92,17 @@ export async function POST(request: NextRequest) {
           userId = userRecord[0].id
         }
 
+        // Extract custom position info
+        const positionName = member.alliance_position_info?.name || member.alliance_position || 'MEMBER'
+        const positionLevel = member.alliance_position_info?.position_level ?? null
+
         // Upsert member data
         await sql`
           INSERT INTO alliance_members (
             alliance_id, nation_id, user_id, nation_name, leader_name,
             score, cities, soldiers, tanks, aircraft, ships, missiles, nukes,
-            position, alliance_seniority, war_policy, domestic_policy, color, continent,
+            position, position_name, position_level, alliance_seniority,
+            war_policy, domestic_policy, color, continent,
             last_active, updated_at
           )
           VALUES (
@@ -146,6 +120,8 @@ export async function POST(request: NextRequest) {
             ${member.missiles},
             ${member.nukes},
             ${member.alliance_position},
+            ${positionName},
+            ${positionLevel},
             ${member.alliance_seniority},
             ${member.warpolicy},
             ${member.dompolicy},
@@ -167,6 +143,8 @@ export async function POST(request: NextRequest) {
             missiles = ${member.missiles},
             nukes = ${member.nukes},
             position = ${member.alliance_position},
+            position_name = ${positionName},
+            position_level = ${positionLevel},
             alliance_seniority = ${member.alliance_seniority},
             war_policy = ${member.warpolicy},
             domestic_policy = ${member.dompolicy},

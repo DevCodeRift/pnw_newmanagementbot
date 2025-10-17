@@ -18,6 +18,8 @@ interface Member {
   missiles: number
   nukes: number
   position: string
+  position_name: string | null
+  position_level: number | null
   alliance_seniority: number | null
   war_policy: string
   domestic_policy: string
@@ -30,17 +32,25 @@ interface MembershipTableProps {
   members: Member[]
 }
 
-// Role hierarchy for sorting (higher number = higher rank)
-const ROLE_HIERARCHY: Record<string, number> = {
-  'LEADER': 5,
-  'HEIR': 4,
-  'OFFICER': 3,
-  'MEMBER': 2,
-  'APPLICANT': 1,
-}
+// Use position_level directly (0-9 scale from API)
+// 9 = Leader, 8 = Heir, 5 = Officer, 3 = Member, 0 = Applicant
+// Custom positions have their own level set by the alliance
+const getRoleRank = (member: Member): number => {
+  // Prefer position_level from API if available
+  if (member.position_level !== null && member.position_level !== undefined) {
+    return member.position_level
+  }
 
-const getRoleRank = (position: string): number => {
-  return ROLE_HIERARCHY[position?.toUpperCase()] || 0
+  // Fallback to enum-based hierarchy
+  const position = member.position?.toUpperCase() || 'MEMBER'
+  const fallbackHierarchy: Record<string, number> = {
+    'LEADER': 9,
+    'HEIR': 8,
+    'OFFICER': 5,
+    'MEMBER': 3,
+    'APPLICANT': 0,
+  }
+  return fallbackHierarchy[position] || 0
 }
 
 export default function MembershipTable({ members }: MembershipTableProps) {
@@ -48,10 +58,22 @@ export default function MembershipTable({ members }: MembershipTableProps) {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [positionFilter, setPositionFilter] = useState<string>('ALL')
 
-  // Get unique positions from members
+  // Get unique position names from members
   const uniquePositions = useMemo(() => {
-    const positions = new Set(members.map(m => m.position?.toUpperCase() || 'MEMBER'))
-    return Array.from(positions).sort((a, b) => getRoleRank(b) - getRoleRank(a))
+    const positionMap = new Map<string, Member>()
+
+    // Build map of position names with a representative member for sorting
+    members.forEach(m => {
+      const posName = m.position_name || m.position || 'MEMBER'
+      if (!positionMap.has(posName)) {
+        positionMap.set(posName, m)
+      }
+    })
+
+    // Sort by position level (highest to lowest)
+    return Array.from(positionMap.entries())
+      .sort((a, b) => getRoleRank(b[1]) - getRoleRank(a[1]))
+      .map(([name]) => name)
   }, [members])
 
   const handleSort = (field: SortField) => {
@@ -68,15 +90,18 @@ export default function MembershipTable({ members }: MembershipTableProps) {
     // First filter
     let filtered = members
     if (positionFilter !== 'ALL') {
-      filtered = members.filter(m => m.position?.toUpperCase() === positionFilter)
+      filtered = members.filter(m => {
+        const memberPosName = m.position_name || m.position || 'MEMBER'
+        return memberPosName === positionFilter
+      })
     }
 
     // Then sort
     return [...filtered].sort((a, b) => {
       // Special handling for position sorting with hierarchy
       if (sortField === 'position') {
-        const aRank = getRoleRank(a.position)
-        const bRank = getRoleRank(b.position)
+        const aRank = getRoleRank(a)
+        const bRank = getRoleRank(b)
         return sortDirection === 'asc' ? aRank - bRank : bRank - aRank
       }
 
@@ -96,15 +121,20 @@ export default function MembershipTable({ members }: MembershipTableProps) {
     })
   }, [members, sortField, sortDirection, positionFilter])
 
-  const getPositionColor = (position: string) => {
-    const pos = position?.toUpperCase() || 'MEMBER'
-    switch (pos) {
-      case 'LEADER': return { bg: '#fef3c7', text: '#92400e', border: '#fbbf24' }
-      case 'HEIR': return { bg: '#dbeafe', text: '#1e3a8a', border: '#60a5fa' }
-      case 'OFFICER': return { bg: '#e0e7ff', text: '#3730a3', border: '#818cf8' }
-      case 'MEMBER': return { bg: '#d1fae5', text: '#065f46', border: '#34d399' }
-      case 'APPLICANT': return { bg: '#f3f4f6', text: '#374151', border: '#9ca3af' }
-      default: return { bg: '#f3f4f6', text: '#374151', border: '#9ca3af' }
+  const getPositionColor = (member: Member) => {
+    // Use position_level for color (0-9 scale)
+    const level = member.position_level ?? getRoleRank(member)
+
+    if (level >= 9) { // Leader
+      return { bg: '#fef3c7', text: '#92400e', border: '#fbbf24' }
+    } else if (level >= 8) { // Heir
+      return { bg: '#dbeafe', text: '#1e3a8a', border: '#60a5fa' }
+    } else if (level >= 5) { // Officer
+      return { bg: '#e0e7ff', text: '#3730a3', border: '#818cf8' }
+    } else if (level >= 3) { // Member
+      return { bg: '#d1fae5', text: '#065f46', border: '#34d399' }
+    } else { // Applicant
+      return { bg: '#f3f4f6', text: '#374151', border: '#9ca3af' }
     }
   }
 
@@ -245,7 +275,8 @@ export default function MembershipTable({ members }: MembershipTableProps) {
           </thead>
           <tbody>
             {filteredAndSortedMembers.map((member, index) => {
-              const posColor = getPositionColor(member.position)
+              const posColor = getPositionColor(member)
+              const displayPosition = member.position_name || member.position || 'MEMBER'
               return (
                 <tr
                   key={member.nation_id}
@@ -283,7 +314,7 @@ export default function MembershipTable({ members }: MembershipTableProps) {
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em'
                     }}>
-                      {member.position || 'MEMBER'}
+                      {displayPosition}
                     </span>
                   </td>
                   <td style={{ padding: '0.75rem', textAlign: 'right', color: '#a78bfa', fontWeight: '600' }}>
